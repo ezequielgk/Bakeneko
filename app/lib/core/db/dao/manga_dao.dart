@@ -90,6 +90,17 @@ class MangaDao {
       .select('SELECT blob_json FROM manga WHERE library=1 ORDER BY added_at DESC')
       .map((r) => Manga.fromJson(jsonDecode(r.columnAt(0) as String) as Map<String, dynamic>))
       .toList();
+
+  /// Mangas asignados a una categoría, ordenados por `added_at DESC`.
+  List<Manga> byCategory(int categoryId) => db.db
+      .select(
+        'SELECT m.blob_json FROM manga m '
+        'JOIN manga_category mc ON mc.manga_id=m.id '
+        'WHERE mc.category_id=? ORDER BY m.added_at DESC',
+        [categoryId],
+      )
+      .map((r) => Manga.fromJson(jsonDecode(r.columnAt(0) as String) as Map<String, dynamic>))
+      .toList();
 }
 
 class _MangaRow {

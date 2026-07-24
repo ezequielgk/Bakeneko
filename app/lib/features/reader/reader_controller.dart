@@ -58,6 +58,8 @@ class ReaderController extends FamilyNotifier<ReaderState, ReaderArg> {
       final historyDao = ref.read(historyDaoProvider);
       final id = mangaDao.upsert(arg.manga);
       historyDao.upsert(id, chapterIndex: state.currentChapter);
+      // Refresca Home (historial cambió).
+      ref.read(libraryVersionProvider.notifier).state++;
 
       state = state.copyWith(pageUrls: urls, loadingPages: false, mangaId: id);
     } catch (e) {

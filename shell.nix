@@ -13,6 +13,9 @@ pkgs.mkShell {
   packages = with pkgs; [
     # --- Flutter desktop (Linux) toolchain ---
     clang
+    # libstdc++.so.6: lo necesita el binario Flutter precompilado en runtime
+    # (clang solo trae el envoltorio; el runtime C++ vive en stdenv.cc.cc.lib).
+    stdenv.cc.cc.lib
     cmake
     ninja
     pkg-config
@@ -49,7 +52,9 @@ pkgs.mkShell {
     export FLUTTER_SUPPRESS_ANALYTICS=true
     # sqlite3 (FFI) necesita encontrar libsqlite3.so en el shell de desarrollo.
     # En build empaquetado lo provee sqlite3_flutter_libs junto al binario.
-    export LD_LIBRARY_PATH="${pkgs.sqlite.out}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    # stdenv.cc.cc.lib provee libstdc++.so.6 que el binario Flutter precompilado
+    # carga en runtime pero nix-shell no expone por defecto.
+    export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.sqlite.out}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     echo ""
     echo "  bakeneko dev shell"
     echo "  flutter:  $(flutter --version 2>/dev/null | head -1 | sed 's/^[«"]//; s/[»"].*//')"

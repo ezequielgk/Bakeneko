@@ -38,6 +38,19 @@ class AppTokens {
   static const sidebarFg = sage;
   static const sidebarFgActive = cream;
   static const sidebarBorder = Color(0xFF2A1C12);
+
+  /// Paleta de colores para categorías (hex strings, como se guardan en DB).
+  /// El usuario elige al crear una categoría.
+  static const categoryColors = <String>[
+    '#e29578', // terracotta
+    '#a3b19b', // sage
+    '#ddb892', // tan
+    '#c08552', // ochre
+    '#7a8c74', // muted sage
+    '#b56576', // berry
+    '#8a7090', // mauve
+    '#5e8b7e', // teal sage
+  ];
 }
 
 /// Construye el [ColorScheme] según modo de tema y acento elegido.

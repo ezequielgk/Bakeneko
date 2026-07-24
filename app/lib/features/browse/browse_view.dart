@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app.dart';
 import '../../core/models.dart';
 import '../../core/theme/icons.dart';
+import '../../core/widgets/manga_cover.dart';
 import '../shell/shell_view.dart';
 import 'browse_controller.dart';
 
@@ -203,50 +203,11 @@ class _Body extends StatelessWidget {
           return const Center(child: Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))));
         }
         final manga = state.mangas[i];
-        return _MangaCard(manga: manga, onTap: () {
+        return MangaCover(manga: manga, onTap: () {
           final ref = ProviderScope.containerOf(context, listen: false);
           ref.read(navProvider.notifier).openManga(MangaRef(source: manga.source, url: manga.url, title: manga.title));
         });
       },
-    );
-  }
-}
-
-class _MangaCard extends StatelessWidget {
-  const _MangaCard({required this.manga, required this.onTap});
-  final Manga manga;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: const BorderRadius.all(Radius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(10)),
-              child: Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: manga.coverUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: manga.coverUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                        errorWidget: (_, __, ___) => Icon(I.star, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      )
-                    : const Icon(Icons.image_not_supported_outlined),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(manga.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          if (manga.authors.isNotEmpty)
-            Text(manga.authors.join(', '), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        ],
-      ),
     );
   }
 }

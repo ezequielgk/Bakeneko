@@ -50,6 +50,8 @@ class DetailsController extends FamilyNotifier<DetailsState, MangaRef> {
     final newFav = !state.isFavorite;
     mangaDao.setFavorite(id, newFav);
     state = state.copyWith(isFavorite: newFav);
+    // Refresca Home/Biblioteca (favoritos cambiaron).
+    ref.read(libraryVersionProvider.notifier).state++;
   }
 
   void retry(MangaRef mangaRef) => _load(mangaRef);

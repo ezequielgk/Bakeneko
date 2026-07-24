@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/daemon/daemon_client.dart';
 import 'core/db/database.dart';
+import 'core/db/dao/category_dao.dart';
 import 'core/db/dao/chapter_dao.dart';
 import 'core/db/dao/download_dao.dart';
 import 'core/db/dao/history_dao.dart';
@@ -35,6 +36,12 @@ final downloadDaoProvider = Provider<DownloadDao>((ref) =>
     throw UnimplementedError());
 final historyDaoProvider = Provider<HistoryDao>((ref) =>
     throw UnimplementedError());
+final categoryDaoProvider = Provider<CategoryDao>((ref) =>
+    throw UnimplementedError());
+
+/// Versión lógica de la biblioteca: bump tras mutar favoritos/categorías.
+/// Los providers síncronos (Home/Library) lo [ref.watch]ean para refrescarse.
+final libraryVersionProvider = StateProvider<int>((_) => 0);
 
 String _resolveJarPathForBuild() {
   // En desarrollo: daemon/build/libs/bakeneko-daemon.jar relativo al SDK.

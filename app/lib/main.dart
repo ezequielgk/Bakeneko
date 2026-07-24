@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/daemon/daemon_client.dart';
 import 'core/db/database.dart';
+import 'core/db/dao/category_dao.dart';
 import 'core/db/dao/chapter_dao.dart';
 import 'core/db/dao/download_dao.dart';
 import 'core/db/dao/history_dao.dart';
@@ -21,6 +22,7 @@ void main() {
   final chapterDao = ChapterDao(db);
   final downloadDao = DownloadDao(db);
   final historyDao = HistoryDao(db, mangaDao);
+  final categoryDao = CategoryDao(db);
 
   runApp(ProviderScope(
     overrides: [
@@ -31,6 +33,7 @@ void main() {
       chapterDaoProvider.overrideWithValue(chapterDao),
       downloadDaoProvider.overrideWithValue(downloadDao),
       historyDaoProvider.overrideWithValue(historyDao),
+      categoryDaoProvider.overrideWithValue(categoryDao),
     ],
     child: const BakenekoApp(),
   ));
