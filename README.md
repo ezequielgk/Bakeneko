@@ -157,4 +157,6 @@ rm -rf ~/.local/share/bakeneko ~/.config/bakeneko ~/.cache/bakeneko
 
 ## Licencia
 
-MIT
+Copyright (c) 2026, CrowRei34. Distribuido bajo licencia **BSD 3-Clause** — ver [LICENSE](LICENSE).
+
+**kotatsu-parsers** (parsers de fuentes) es una librería de terceros desarrollada por KoithaTechDev y distribuida bajo su propia licencia. Bakeneko Reader la consume como dependencia de Gradle sin modificar ni redistribuir su código fuente.
