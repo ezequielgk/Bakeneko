@@ -14,6 +14,8 @@ class Settings {
     this.defaultReadMode = ReadMode.webtoon,
     this.readerColorFilter = ColorFilterPreset.none,
     this.enabledSources = const ['MANGADEX'],
+    this.compactSidebar = false,
+    this.cornerRadius = AppCornerRadius.slight,
   });
 
   final AppThemeMode themeMode;
@@ -22,6 +24,8 @@ class Settings {
   final ReadMode defaultReadMode;
   final ColorFilterPreset readerColorFilter;
   final List<String> enabledSources;
+  final bool compactSidebar;
+  final AppCornerRadius cornerRadius;
 
   Settings copyWith({
     AppThemeMode? themeMode,
@@ -30,6 +34,8 @@ class Settings {
     ReadMode? defaultReadMode,
     ColorFilterPreset? readerColorFilter,
     List<String>? enabledSources,
+    bool? compactSidebar,
+    AppCornerRadius? cornerRadius,
   }) => Settings(
     themeMode: themeMode ?? this.themeMode,
     accent: accent ?? this.accent,
@@ -37,6 +43,8 @@ class Settings {
     defaultReadMode: defaultReadMode ?? this.defaultReadMode,
     readerColorFilter: readerColorFilter ?? this.readerColorFilter,
     enabledSources: enabledSources ?? this.enabledSources,
+    compactSidebar: compactSidebar ?? this.compactSidebar,
+    cornerRadius: cornerRadius ?? this.cornerRadius,
   );
 
   Map<String, dynamic> toJson() => {
@@ -46,6 +54,8 @@ class Settings {
     'defaultReadMode': defaultReadMode.name,
     'readerColorFilter': readerColorFilter.name,
     'enabledSources': enabledSources,
+    'compactSidebar': compactSidebar,
+    'cornerRadius': cornerRadius.name,
   };
 
   factory Settings.fromJson(Map<String, dynamic> json) {
@@ -62,6 +72,8 @@ class Settings {
         ColorFilterPreset.none,
       ),
       enabledSources: (json['enabledSources'] as List?)?.cast<String>() ?? const ['MANGADEX'],
+      compactSidebar: json['compactSidebar'] as bool? ?? false,
+      cornerRadius: byName(AppCornerRadius.values, json['cornerRadius'] as String?, AppCornerRadius.slight),
     );
   }
 
@@ -73,6 +85,7 @@ enum Accent { terracotta, sage }
 enum GridDensity { compact, comfortable, large }
 enum ReadMode { webtoon, paginated }
 enum ColorFilterPreset { none, grayscale, sepia, bluelight }
+enum AppCornerRadius { sharp, slight, rounded }
 
 /// Lee/escribe settings.json bajo $XDG_CONFIG_HOME/bakeneko/.
 class SettingsStore {

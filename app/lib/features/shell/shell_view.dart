@@ -18,6 +18,8 @@ import '../reader/reader_state.dart';
 import '../../core/settings.dart';
 import '../../app.dart';
 
+import '../../app.dart';
+
 /// Secciones del sidebar (mismas que el mockup Figma + 'Explorar' acordada).
 enum NavSection { home, library, browse, downloads, extensions, settings }
 
@@ -75,7 +77,15 @@ class ShellView extends ConsumerWidget {
     return Scaffold(
       body: Row(
         children: [
-          _Sidebar(active: nav.section, onGo: (s) => ref.read(navProvider.notifier).go(s)),
+          _Sidebar(
+            active: nav.section, 
+            compact: ref.watch(settingsProvider.select((s) => s.compactSidebar)),
+            onGo: (s) => ref.read(navProvider.notifier).go(s),
+            onToggleCompact: () {
+              final current = ref.read(settingsProvider);
+              ref.read(settingsProvider.notifier).update((_) => current.copyWith(compactSidebar: !current.compactSidebar));
+            },
+          ),
           const VerticalDivider(width: 1, color: AppTokens.sidebarBorder),
           Expanded(
             child: current == null
@@ -162,14 +172,24 @@ class _DetailWithBack extends ConsumerWidget {
 }
 
 class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.active, required this.onGo});
+  const _Sidebar({
+    required this.active, 
+    required this.compact, 
+    required this.onGo, 
+    required this.onToggleCompact,
+  });
+  
   final NavSection active;
+  final bool compact;
   final ValueChanged<NavSection> onGo;
+  final VoidCallback onToggleCompact;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 196,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      width: compact ? 72 : 196,
       color: AppTokens.sidebarBg,
       child: SafeArea(
         child: Padding(
@@ -179,15 +199,17 @@ class _Sidebar extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'BAKENEKO',
-                  style: TextStyle(
-                    color: AppTokens.terracotta,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    fontSize: 16,
+                child: compact ? 
+                  const Icon(I.home, color: AppTokens.terracotta) :
+                  const Text(
+                    'BAKENEKO',
+                    style: TextStyle(
+                      color: AppTokens.terracotta,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                      fontSize: 16,
+                    ),
                   ),
-                ),
               ),
               const SizedBox(height: 24),
               ...ShellView._items.map((it) {
@@ -197,9 +219,18 @@ class _Sidebar extends StatelessWidget {
                   icon: icon,
                   label: label,
                   active: isActive,
+                  compact: compact,
                   onTap: () => onGo(section),
                 );
               }),
+              const Spacer(),
+              _NavItem(
+                icon: compact ? Icons.chevron_right : Icons.chevron_left,
+                label: 'Contraer',
+                active: false,
+                compact: compact,
+                onTap: onToggleCompact,
+              ),
             ],
           ),
         ),
@@ -209,30 +240,48 @@ class _Sidebar extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.icon, required this.label, required this.active, required this.onTap});
+  const _NavItem({
+    required this.icon, 
+    required this.label, 
+    required this.active, 
+    required this.compact, 
+    required this.onTap,
+  });
+  
   final IconData icon;
   final String label;
   final bool active;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final fg = active ? AppTokens.sidebarFgActive : AppTokens.sidebarFg;
+    
+    Widget content = Container(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 0 : AppSpacing.lg, vertical: AppSpacing.sm + 2),
+      decoration: BoxDecoration(
+        border: Border(left: BorderSide(width: 3, color: active ? AppTokens.terracotta : Colors.transparent)),
+      ),
+      child: Row(
+        mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: fg),
+          if (!compact) ...[
+            const SizedBox(width: AppSpacing.md),
+            Text(label, style: TextStyle(color: fg, fontSize: 14, fontWeight: active ? FontWeight.w600 : FontWeight.w400)),
+          ]
+        ],
+      ),
+    );
+
+    if (compact) {
+      content = Tooltip(message: label, child: content);
+    }
+
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(width: 3, color: active ? AppTokens.terracotta : Colors.transparent)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: fg),
-            const SizedBox(width: 12),
-            Text(label, style: TextStyle(color: fg, fontSize: 14, fontWeight: active ? FontWeight.w600 : FontWeight.w400)),
-          ],
-        ),
-      ),
+      child: content,
     );
   }
 }

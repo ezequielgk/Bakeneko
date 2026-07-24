@@ -37,7 +37,7 @@ class AppTokens {
   static const sidebarBg = espresso;
   static const sidebarFg = sage;
   static const sidebarFgActive = cream;
-  static const sidebarBorder = Color(0xFF2A1C12);
+  static const sidebarBorder = Color(0xFF2E1E10); // Better contrast
 
   /// Paleta de colores para categorías (hex strings, como se guardan en DB).
   /// El usuario elige al crear una categoría.
@@ -51,6 +51,14 @@ class AppTokens {
     '#8a7090', // mauve
     '#5e8b7e', // teal sage
   ];
+}
+
+class AppSpacing {
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 16.0;
+  static const double lg = 24.0;
+  static const double xl = 32.0;
 }
 
 /// Construye el [ColorScheme] según modo de tema y acento elegido.
