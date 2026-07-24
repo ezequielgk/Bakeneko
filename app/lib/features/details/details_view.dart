@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models.dart';
 import '../../core/theme/icons.dart';
+import '../shell/shell_view.dart';
 import 'details_controller.dart';
 
 class DetailsView extends ConsumerWidget {
@@ -55,7 +56,7 @@ class _Content extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => w.read(readerChapterProvider.notifier).state = 0,
                   icon: const Icon(I.play, size: 18),
                   label: const Text('Leer Ahora'),
                 ),
@@ -116,7 +117,7 @@ class _Content extends ConsumerWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(onPressed: () {}, icon: const Icon(I.download, size: 18)),
-                                  TextButton(onPressed: () {}, child: const Text('Ver')),
+                                  TextButton(onPressed: () => w.read(readerChapterProvider.notifier).state = i, child: const Text('Ver')),
                                 ],
                               ),
                               onTap: () {},

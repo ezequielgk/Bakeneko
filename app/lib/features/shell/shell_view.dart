@@ -5,12 +5,14 @@ import '../../core/models.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/icons.dart';
 import '../browse/browse_view.dart';
+import '../details/details_controller.dart';
 import '../details/details_view.dart';
 import '../downloads/downloads_view.dart';
 import '../extensions/extensions_view.dart';
 import '../home/home_view.dart';
 import '../library/library_view.dart';
 import '../settings/settings_view.dart';
+import '../reader/reader_view.dart';
 
 /// Secciones del sidebar (mismas que el mockup Figma + 'Explorar' acordada).
 enum NavSection { home, library, browse, downloads, extensions, settings }
@@ -32,6 +34,9 @@ class NavState {
 }
 
 final detailsStackProvider = StateProvider<List<MangaRef>>((_) => const []);
+
+/// Capítulo abierto en el lector (null = lector cerrado).
+final readerChapterProvider = StateProvider<int?>((_) => null);
 
 class NavigationController extends StateNotifier<NavState> {
   NavigationController() : super(const NavState());
@@ -55,7 +60,14 @@ class ShellView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nav = ref.watch(navProvider);
+    final readerCh = ref.watch(readerChapterProvider);
     final current = nav.details.isNotEmpty ? nav.details.last : null;
+
+    // Lector a pantalla completa encima de todo si está activo.
+    if (readerCh != null && current != null) {
+      return _ReaderOverlay(mangaRef: current, chapterIndex: readerCh);
+    }
+
     return Scaffold(
       body: Row(
         children: [
@@ -75,6 +87,34 @@ class ShellView extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ReaderOverlay extends ConsumerWidget {
+  const _ReaderOverlay({required this.mangaRef, required this.chapterIndex});
+  final MangaRef mangaRef;
+  final int chapterIndex;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final details = ref.watch(detailsProvider(mangaRef));
+    final manga = details.manga;
+    if (manga == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return Stack(
+      children: [
+        ReaderView(manga: manga, chapterIndex: chapterIndex),
+        Positioned(
+          top: 8,
+          left: 8,
+          child: SafeArea(
+            child: IconButton.filled(
+              onPressed: () => ref.read(readerChapterProvider.notifier).state = null,
+              icon: const Icon(Icons.close, size: 22),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
