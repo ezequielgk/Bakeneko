@@ -39,3 +39,9 @@ app.log
 build_appimage.sh
 HANDOFF.md
 Inspect.kt
+
+# AI / agent metadata
+.zcode/
+.agents/
+.gemini/
+docs/superpowers/
