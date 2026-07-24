@@ -1,0 +1,32 @@
+name: bakeneko
+description: "Bakeneko-Reader — lector de manga premium para Linux (refactor en Flutter)."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # --- Estado (sin codegen) ---
+  flutter_riverpod: ^2.6.1
+  # --- Base de datos (FFI, SQL a mano) ---
+  sqlite3: ^2.7.6
+  sqlite3_flutter_libs: ^0.5.32
+  # --- Imágenes con caché + headers ---
+  cached_network_image: ^3.4.1
+  # --- Rutas / paths POSIX ---
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  # --- Utilidades de red (hablar con daemon por socket Unix) ---
+  # dart:io ya cubre Unix domain sockets; no hace falta paquete extra.
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
