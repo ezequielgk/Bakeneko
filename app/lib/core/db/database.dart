@@ -16,6 +16,8 @@ class AppDatabase {
   /// si la base está vacía; en el futuro las migraciones viven aquí.
   factory AppDatabase.open(String path) {
     final db = sqlite3.open(path);
+    db.execute('PRAGMA journal_mode = WAL;');
+    db.execute('PRAGMA busy_timeout = 5000;');
     db.execute('PRAGMA foreign_keys = ON;');
     _migrate(db, fileBacked: true);
     db.execute('PRAGMA foreign_keys = ON;');

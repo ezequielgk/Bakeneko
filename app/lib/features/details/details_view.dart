@@ -2,8 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app.dart';
 import '../../core/models.dart';
 import '../../core/theme/icons.dart';
+import '../downloads/downloads_provider.dart';
 import '../shell/shell_view.dart';
 import 'details_controller.dart';
 
@@ -98,7 +100,16 @@ class _Content extends ConsumerWidget {
                     Text('Capítulos (${manga.chapters.length})', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                     const Spacer(),
                     if (manga.chapters.isNotEmpty)
-                      TextButton.icon(onPressed: () {}, icon: const Icon(I.download, size: 16), label: const Text('Descargar Todo')),
+                      TextButton.icon(
+                        onPressed: () {
+                          final manager = w.read(downloadManagerProvider);
+                          for (final ch in manga.chapters) {
+                            manager.enqueue(manga, ch);
+                          }
+                        }, 
+                        icon: const Icon(I.download, size: 16), 
+                        label: const Text('Descargar Todo'),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -109,19 +120,7 @@ class _Content extends ConsumerWidget {
                       : ListView.builder(
                           itemCount: manga.chapters.length,
                           itemBuilder: (_, i) {
-                            final ch = manga.chapters[i];
-                            return ListTile(
-                              dense: true,
-                              title: Text(ch.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(onPressed: () {}, icon: const Icon(I.download, size: 18)),
-                                  TextButton(onPressed: () => w.read(readerChapterProvider.notifier).state = i, child: const Text('Ver')),
-                                ],
-                              ),
-                              onTap: () {},
-                            );
+                            return _ChapterTile(manga: manga, chapterIndex: i);
                           },
                         ),
                 ),
@@ -130,6 +129,67 @@ class _Content extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ChapterTile extends ConsumerWidget {
+  const _ChapterTile({required this.manga, required this.chapterIndex});
+  final Manga manga;
+  final int chapterIndex;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ch = manga.chapters[chapterIndex];
+    final dlState = ref.watch(downloadsProvider);
+    final manager = ref.watch(downloadManagerProvider);
+    final mangaDao = ref.watch(mangaDaoProvider);
+    final mangaId = mangaDao.getId(manga.source, manga.url);
+    
+    // Buscar si está en la cola o descargando
+    final entry = mangaId != null 
+        ? dlState.entries.where((e) => e.mangaId == mangaId && e.chapterUrl == ch.url).firstOrNull 
+        : null;
+    final isDone = entry?.state == DownloadState.done || manager.isComplete(manga, ch);
+
+    Widget trailingIcon;
+    VoidCallback? onIconTap;
+
+    if (isDone) {
+      trailingIcon = const Icon(Icons.check_circle, color: Colors.green, size: 20);
+      onIconTap = () {
+        if (mangaId != null) manager.delete(mangaId, ch.url);
+      };
+    } else if (entry?.state == DownloadState.downloading) {
+      final progress = entry!.totalPages > 0 ? entry.donePages / entry.totalPages : null;
+      trailingIcon = SizedBox(
+        width: 20, height: 20,
+        child: CircularProgressIndicator(value: progress, strokeWidth: 2),
+      );
+      onIconTap = () {
+        if (mangaId != null) ref.read(downloadsProvider.notifier).cancel(mangaId, ch.url);
+      };
+    } else if (entry?.state == DownloadState.queued) {
+      trailingIcon = const Icon(Icons.access_time, size: 20);
+      onIconTap = () {
+        if (mangaId != null) ref.read(downloadsProvider.notifier).cancel(mangaId, ch.url);
+      };
+    } else {
+      trailingIcon = const Icon(I.download, size: 20);
+      onIconTap = () => manager.enqueue(manga, ch);
+    }
+
+    return ListTile(
+      dense: true,
+      title: Text(ch.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(onPressed: onIconTap, icon: trailingIcon),
+          TextButton(onPressed: () => ref.read(readerChapterProvider.notifier).state = chapterIndex, child: const Text('Ver')),
+        ],
+      ),
+      onTap: () {},
     );
   }
 }

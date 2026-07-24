@@ -51,6 +51,33 @@ class DownloadDao {
       .map((r) => DownloadEntry.fromRow(AppDatabase.rowToMap(r)))
       .toList();
 
+  /// Todas las entradas de descarga (para la pantalla de cola).
+  List<DownloadEntry> list() => db.db
+      .select('SELECT manga_id, chapter_url, state, total_pages, done_pages FROM download '
+          'ORDER BY (state=\'done\'), manga_id, chapter_url')
+      .map((r) => DownloadEntry.fromRow(AppDatabase.rowToMap(r)))
+      .toList();
+
+  /// Descargas completadas (para stats de almacenamiento y detección offline).
+  List<DownloadEntry> done() => db.db
+      .select('SELECT manga_id, chapter_url, state, total_pages, done_pages FROM download '
+          'WHERE state=? ORDER BY manga_id, chapter_url',
+          [DownloadState.done.name])
+      .map((r) => DownloadEntry.fromRow(AppDatabase.rowToMap(r)))
+      .toList();
+
+  /// Número de capítulos descargados (state=done).
+  int countDoneChapters() => db.db
+      .select('SELECT COUNT(*) FROM download WHERE state=?', [DownloadState.done.name])
+      .first
+      .columnAt(0) as int;
+
+  /// Número de mangas distintos con al menos un capítulo descargado.
+  int countDoneManga() => db.db
+      .select('SELECT COUNT(DISTINCT manga_id) FROM download WHERE state=?', [DownloadState.done.name])
+      .first
+      .columnAt(0) as int;
+
   List<DownloadEntry> forManga(int mangaId) => db.db
       .select(
         'SELECT manga_id, chapter_url, state, total_pages, done_pages FROM download '

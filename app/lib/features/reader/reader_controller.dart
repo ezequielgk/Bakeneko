@@ -15,7 +15,8 @@ class ReaderController extends FamilyNotifier<ReaderState, ReaderArg> {
   }
 
   Future<void> _load(ReaderArg arg) async {
-    state = ReaderState.initial(arg.settings.defaultReadMode, arg.settings.readerColorFilter);
+    state = ReaderState.initial(arg.settings.defaultReadMode, arg.settings.readerColorFilter)
+        .copyWith(loadingPages: true);
     try {
       final daemon = ref.read(daemonClientProvider);
       final manga = arg.manga;
@@ -42,15 +43,21 @@ class ReaderController extends FamilyNotifier<ReaderState, ReaderArg> {
 
   Future<void> _loadPages(ReaderArg arg, Chapter chapter) async {
     try {
-      final daemon = ref.read(daemonClientProvider);
-      final rawPages = await daemon.chapterPages(chapter.source,
-          {'source': chapter.source, 'url': chapter.url, 'title': chapter.title});
-      final pages = rawPages.map(Page.fromJson).toList();
-
-      // Resuelve las URLs finales de cada página (getPageUrl del daemon).
+      final manager = ref.read(downloadManagerProvider);
       final urls = <String>[];
-      for (final p in pages) {
-        urls.add(await daemon.pageUrl(p.source, p.toJson()));
+
+      if (manager.isComplete(arg.manga, chapter)) {
+        final files = manager.pagesFor(arg.manga, chapter);
+        urls.addAll(files.map((f) => 'file://${f.path}'));
+      } else {
+        final daemon = ref.read(daemonClientProvider);
+        final rawPages = await daemon.chapterPages(chapter.source,
+            {'source': chapter.source, 'url': chapter.url, 'title': chapter.title});
+        final pages = rawPages.map(Page.fromJson).toList();
+
+        for (final p in pages) {
+          urls.add(await daemon.pageUrl(p.source, p.toJson()));
+        }
       }
 
       // Persiste historial.

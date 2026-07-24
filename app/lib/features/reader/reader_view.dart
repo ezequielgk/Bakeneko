@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -163,12 +164,22 @@ class _Page extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final img = CachedNetworkImage(
-      imageUrl: url,
-      fit: fit,
-      placeholder: (_, __) => const Center(child: CircularProgressIndicator(color: Colors.white54)),
-      errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 40),
-    );
+    Widget img;
+    if (url.startsWith('file://')) {
+      final path = url.replaceFirst('file://', '');
+      img = Image.file(
+        File(path),
+        fit: fit,
+        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 40),
+      );
+    } else {
+      img = CachedNetworkImage(
+        imageUrl: url,
+        fit: fit,
+        placeholder: (_, __) => const Center(child: CircularProgressIndicator(color: Colors.white54)),
+        errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 40),
+      );
+    }
     final cf = _colorFilter;
     return cf == null ? img : ColorFiltered(colorFilter: cf, child: img);
   }

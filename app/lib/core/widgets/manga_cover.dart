@@ -14,12 +14,14 @@ class MangaCover extends StatelessWidget {
     super.key,
     required this.manga,
     required this.onTap,
+    this.onLongPress,
     this.width = 150,
     this.subtitle,
   });
 
   final Manga manga;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final double width;
   final String? subtitle;
 
@@ -27,6 +29,8 @@ class MangaCover extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
+      onSecondaryTapUp: onLongPress != null ? (_) => onLongPress!() : null, // Para PC
       borderRadius: const BorderRadius.all(Radius.circular(10)),
       child: SizedBox(
         width: width,

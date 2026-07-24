@@ -31,6 +31,7 @@ class MangaDao {
     return _byUrl(manga.source, manga.url)?.id ?? -1;
   }
 
+
   _MangaRow? _byUrl(String source, String url) {
     final rs = db.db.select(
       'SELECT id, source, url, title, cover_url, description, blob_json FROM manga WHERE source=? AND url=?',
@@ -48,6 +49,13 @@ class MangaDao {
       blobJson: r['blob_json'] as String,
     );
   }
+
+  /// Obtiene el ID numérico local del manga.
+  int? getId(String source, String url) {
+    final rs = db.db.select('SELECT id FROM manga WHERE source=? AND url=?', [source, url]);
+    return rs.rows.isEmpty ? null : rs.first.columnAt(0) as int;
+  }
+
 
   Manga? byId(int id) {
     final rs = db.db.select(

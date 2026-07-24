@@ -28,6 +28,7 @@ pkgs.mkShell {
     libepoxy
     harfbuzz
     freetype
+    libGL
 
     # --- Flutter & Dart ---
     flutter
@@ -54,7 +55,7 @@ pkgs.mkShell {
     # En build empaquetado lo provee sqlite3_flutter_libs junto al binario.
     # stdenv.cc.cc.lib provee libstdc++.so.6 que el binario Flutter precompilado
     # carga en runtime pero nix-shell no expone por defecto.
-    export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.sqlite.out}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.sqlite.out}/lib:${pkgs.libGL}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     echo ""
     echo "  bakeneko dev shell"
     echo "  flutter:  $(flutter --version 2>/dev/null | head -1 | sed 's/^[«"]//; s/[»"].*//')"

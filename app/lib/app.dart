@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +9,9 @@ import 'core/db/dao/chapter_dao.dart';
 import 'core/db/dao/download_dao.dart';
 import 'core/db/dao/history_dao.dart';
 import 'core/db/dao/manga_dao.dart';
+import 'core/downloads/download_manager.dart';
 import 'core/settings.dart';
+import 'core/xdg.dart';
 import 'core/theme/app_theme.dart';
 import 'features/shell/shell_view.dart';
 
@@ -39,6 +42,19 @@ final historyDaoProvider = Provider<HistoryDao>((ref) =>
 final categoryDaoProvider = Provider<CategoryDao>((ref) =>
     throw UnimplementedError());
 
+final downloadManagerProvider = Provider<DownloadManager>((ref) {
+  final daemon = ref.watch(daemonClientProvider);
+  final backend = DaemonBackend(daemon);
+  final m = DownloadManager(
+    backend: backend,
+    mangaDao: ref.watch(mangaDaoProvider),
+    downloadDao: ref.watch(downloadDaoProvider),
+    downloadsRoot: Directory(Xdg.downloadsRoot.path),
+  );
+  ref.onDispose(m.dispose);
+  return m;
+});
+
 /// Versión lógica de la biblioteca: bump tras mutar favoritos/categorías.
 /// Los providers síncronos (Home/Library) lo [ref.watch]ean para refrescarse.
 final libraryVersionProvider = StateProvider<int>((_) => 0);
@@ -64,13 +80,26 @@ class BakenekoApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final ready = ref.watch(daemonReadyProvider);
+
     return MaterialApp(
       title: 'Bakeneko-Reader',
       debugShowCheckedModeBanner: false,
       theme: appTheme(AppThemeMode.light, settings.accent, Brightness.light),
       darkTheme: appTheme(AppThemeMode.dark, settings.accent, Brightness.dark),
       themeMode: _materialThemeMode(settings.themeMode),
-      home: const ShellView(),
+      home: ready.when(
+        data: (_) => const ShellView(),
+        error: (e, _) => Scaffold(body: Center(child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error al iniciar: $e', textAlign: TextAlign.center),
+          ]
+        ))),
+        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      ),
     );
   }
 

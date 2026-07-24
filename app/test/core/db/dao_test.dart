@@ -88,6 +88,35 @@ void main() {
     expect(downloads.get(id, '/c1')!.state, DownloadState.downloading);
   });
 
+  test('DownloadDao list ordena (no-done primero) y done filtra completados', () {
+    final id = manga.upsert(_m('/a'));
+    downloads.upsert(mangaId: id, chapterUrl: '/c1', state: DownloadState.queued);
+    downloads.upsert(mangaId: id, chapterUrl: '/c2', state: DownloadState.done);
+    downloads.upsert(mangaId: id, chapterUrl: '/c3', state: DownloadState.done);
+
+    // list: pendientes antes que done
+    final all = downloads.list();
+    expect(all.length, 3);
+    expect(all.first.chapterUrl, '/c1');
+
+    // done: solo completados
+    final done = downloads.done();
+    expect(done.length, 2);
+    expect(done.every((d) => d.state == DownloadState.done), isTrue);
+  });
+
+  test('DownloadDao contadores de storage', () {
+    final id1 = manga.upsert(_m('/a', title: 'A'));
+    final id2 = manga.upsert(_m('/b', title: 'B'));
+    downloads.upsert(mangaId: id1, chapterUrl: '/c1', state: DownloadState.done);
+    downloads.upsert(mangaId: id1, chapterUrl: '/c2', state: DownloadState.done);
+    downloads.upsert(mangaId: id2, chapterUrl: '/c1', state: DownloadState.done);
+    downloads.upsert(mangaId: id2, chapterUrl: '/c3', state: DownloadState.queued); // no cuenta
+
+    expect(downloads.countDoneChapters(), 3);
+    expect(downloads.countDoneManga(), 2);
+  });
+
   test('blob persistido es JSON válido y reconstruye Manga', () {
     final id = manga.upsert(_m('/z', title: 'Zman'));
     final m = manga.byId(id)!;

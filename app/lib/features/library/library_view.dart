@@ -18,6 +18,10 @@ class LibraryScreen extends ConsumerWidget {
     final active = state.categories.where((c) => c.id == activeId).firstOrNull;
 
     return Scaffold(
+      endDrawer: _FilterDrawer(
+        currentFilter: state.filter,
+        onFilter: (f) => ref.read(libraryProvider.notifier).setFilter(f),
+      ),
       body: Column(
         children: [
           _Header(
@@ -71,6 +75,12 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(I.filter, size: 20),
+            tooltip: 'Filtros',
+            onPressed: () => Scaffold.of(context).openEndDrawer(),
+          ),
           if (hasActive && cat != null) ...[
             const SizedBox(width: 8),
             PopupMenuButton<String>(
@@ -350,7 +360,113 @@ class _Grid extends StatelessWidget {
           onTap: () => ProviderScope.containerOf(context, listen: false)
               .read(navProvider.notifier)
               .openManga(MangaRef(source: m.source, url: m.url, title: m.title)),
+          onLongPress: () => _showCategoryPopover(context, m),
         );
+      },
+    );
+  }
+}
+
+void _showCategoryPopover(BuildContext context, Manga manga) {
+  final ref = ProviderScope.containerOf(context, listen: false);
+  final categories = ref.read(libraryProvider).categories;
+  final assigned = ref.read(libraryProvider.notifier).getCategoriesForManga(manga).toSet();
+
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text(manga.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Añadir a categoría:', style: TextStyle(fontSize: 14)),
+                  const SizedBox(height: 12),
+                  if (categories.isEmpty)
+                    Text('No hay categorías creadas.', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  for (final c in categories)
+                    CheckboxListTile(
+                      title: Text(c.name, style: const TextStyle(fontSize: 14)),
+                      value: assigned.contains(c.id),
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() {
+                          if (v) {
+                            assigned.add(c.id!);
+                          } else {
+                            assigned.remove(c.id!);
+                          }
+                        });
+                        ref.read(libraryProvider.notifier).toggleCategoryForManga(manga, c.id!, v);
+                      },
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+class _FilterDrawer extends StatelessWidget {
+  const _FilterDrawer({required this.currentFilter, required this.onFilter});
+  final LibraryFilter currentFilter;
+  final ValueChanged<LibraryFilter> onFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Filtros', style: Theme.of(context).textTheme.titleLarge),
+            ),
+            const Divider(height: 1),
+            _FilterItem(label: 'Todos', value: LibraryFilter.all, groupValue: currentFilter, onChanged: onFilter),
+            _FilterItem(label: 'No leídos', value: LibraryFilter.unread, groupValue: currentFilter, onChanged: onFilter),
+            _FilterItem(label: 'Leídos', value: LibraryFilter.read, groupValue: currentFilter, onChanged: onFilter),
+            _FilterItem(label: 'Descargados', value: LibraryFilter.downloaded, groupValue: currentFilter, onChanged: onFilter),
+            _FilterItem(label: 'No descargados', value: LibraryFilter.notDownloaded, groupValue: currentFilter, onChanged: onFilter),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterItem extends StatelessWidget {
+  const _FilterItem({required this.label, required this.value, required this.groupValue, required this.onChanged});
+  final String label;
+  final LibraryFilter value;
+  final LibraryFilter groupValue;
+  final ValueChanged<LibraryFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return RadioListTile<LibraryFilter>(
+      title: Text(label, style: const TextStyle(fontSize: 14)),
+      value: value,
+      groupValue: groupValue,
+      onChanged: (v) {
+        if (v != null) {
+          onChanged(v);
+          Navigator.pop(context); // Close drawer
+        }
       },
     );
   }

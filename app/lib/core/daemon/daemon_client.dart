@@ -35,6 +35,7 @@ class DaemonClient {
     final candidates = [
       p.join(here, 'bakeneko-daemon.jar'),
       p.join(here, 'lib', 'bakeneko-daemon.jar'),
+      p.join(here, '..', 'daemon', 'build', 'libs', 'bakeneko-daemon.jar'),
       // Desarrollo: el binario corre desde app/build/.../bundle; subimos al repo.
       p.join(here, '..', '..', '..', '..', 'daemon', 'build', 'libs', 'bakeneko-daemon.jar'),
     ];
