@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 /// Inmutable: copiar con [copyWith] y guardar con [SettingsStore.save].
 class Settings {
   const Settings({
-    this.themeMode = ThemeMode.system,
+    this.themeMode = AppThemeMode.system,
     this.accent = Accent.terracotta,
     this.gridDensity = GridDensity.comfortable,
     this.defaultReadMode = ReadMode.webtoon,
@@ -16,7 +16,7 @@ class Settings {
     this.enabledSources = const ['MANGADEX'],
   });
 
-  final ThemeMode themeMode;
+  final AppThemeMode themeMode;
   final Accent accent;
   final GridDensity gridDensity;
   final ReadMode defaultReadMode;
@@ -24,7 +24,7 @@ class Settings {
   final List<String> enabledSources;
 
   Settings copyWith({
-    ThemeMode? themeMode,
+    AppThemeMode? themeMode,
     Accent? accent,
     GridDensity? gridDensity,
     ReadMode? defaultReadMode,
@@ -52,7 +52,7 @@ class Settings {
     T byName<T>(List<T> values, String? raw, T def) =>
         values.firstWhere((v) => v.toString().split('.').last == raw, orElse: () => def);
     return Settings(
-      themeMode: byName(ThemeMode.values, json['themeMode'] as String?, ThemeMode.system),
+      themeMode: byName(AppThemeMode.values, json["themeMode"] as String?, AppThemeMode.system),
       accent: byName(Accent.values, json['accent'] as String?, Accent.terracotta),
       gridDensity: byName(GridDensity.values, json['gridDensity'] as String?, GridDensity.comfortable),
       defaultReadMode: byName(ReadMode.values, json['defaultReadMode'] as String?, ReadMode.webtoon),
@@ -68,7 +68,7 @@ class Settings {
   static const Settings defaults = Settings();
 }
 
-enum ThemeMode { light, dark, system }
+enum AppThemeMode { light, dark, system }
 enum Accent { terracotta, sage }
 enum GridDensity { compact, comfortable, large }
 enum ReadMode { webtoon, paginated }

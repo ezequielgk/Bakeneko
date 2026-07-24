@@ -226,3 +226,11 @@ class HistoryEntry {
 /// Codifica/decodifica un blob a texto JSON para persistir en DB.
 String encodeBlob(Map<String, dynamic>? blob) =>
     blob == null ? '{}' : jsonEncode(blob);
+
+/// Referencia ligera a un manga (para navegación: push/pop de Detalles).
+class MangaRef {
+  const MangaRef({required this.source, required this.url, required this.title});
+  final String source;
+  final String url;
+  final String title;
+}

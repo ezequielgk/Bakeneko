@@ -21,7 +21,7 @@ void main() {
   test('round-trip serializa y restaura todos los campos', () async {
     final store = SettingsStore(file: settingsFile);
     final s = Settings.defaults.copyWith(
-      themeMode: ThemeMode.dark,
+      themeMode: AppThemeMode.dark,
       accent: Accent.sage,
       gridDensity: GridDensity.large,
       defaultReadMode: ReadMode.paginated,
@@ -31,7 +31,7 @@ void main() {
     await store.save(s);
 
     final loaded = store.load();
-    expect(loaded.themeMode, ThemeMode.dark);
+    expect(loaded.themeMode, AppThemeMode.dark);
     expect(loaded.accent, Accent.sage);
     expect(loaded.gridDensity, GridDensity.large);
     expect(loaded.defaultReadMode, ReadMode.paginated);
@@ -54,6 +54,6 @@ void main() {
 
   test('fromJson tolera campos desconocidos', () {
     final s = Settings.fromJson({'themeMode': 'dark', 'algoDesconocido': 42} as Map<String, dynamic>);
-    expect(s.themeMode, ThemeMode.dark);
+    expect(s.themeMode, AppThemeMode.dark);
   });
 }
