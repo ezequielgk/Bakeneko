@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app.dart';
-import '../../core/db/dao/history_dao.dart';
+
 import '../../core/models.dart';
 import '../../core/settings.dart';
 import 'reader_state.dart';
@@ -10,13 +10,12 @@ import 'reader_state.dart';
 class ReaderController extends FamilyNotifier<ReaderState, ReaderArg> {
   @override
   ReaderState build(ReaderArg arg) {
-    _load(arg);
-    return ReaderState.initial(arg.settings.defaultReadMode, arg.settings.readerColorFilter);
+    Future.microtask(() => _load(arg));
+    return ReaderState.initial(arg.settings.defaultReadMode, arg.settings.readerColorFilter)
+        .copyWith(chapters: arg.manga.chapters, currentChapter: arg.chapterIndex, loadingPages: true);
   }
 
   Future<void> _load(ReaderArg arg) async {
-    state = ReaderState.initial(arg.settings.defaultReadMode, arg.settings.readerColorFilter)
-        .copyWith(loadingPages: true);
     try {
       final daemon = ref.read(daemonClientProvider);
       final manga = arg.manga;
@@ -77,6 +76,8 @@ class ReaderController extends FamilyNotifier<ReaderState, ReaderArg> {
   void setReadMode(ReadMode mode) => state = state.copyWith(readMode: mode);
 
   void setColorFilter(ColorFilterPreset filter) => state = state.copyWith(colorFilter: filter);
+
+  void toggleUI() => state = state.copyWith(showUI: !state.showUI);
 
   Future<void> nextChapter(ReaderArg arg) async {
     if (state.currentChapter < state.chapters.length - 1) {

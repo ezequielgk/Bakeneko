@@ -30,17 +30,25 @@ class DaemonClient {
   /// Path del fat JAR: por defecto sibling `daemon/build/libs/bakeneko-daemon.jar`.
   /// Se puede override (tests, distribución empaquetada).
   static String defaultJarPath() {
-    // En build empaquetado, el JAR viaja junto al binario en lib/.
-    final here = p.dirname(Platform.script.path);
+    // En build empaquetado (AppImage/bundle), el ejecutable está en usr/bin/bakeneko
+    // y el JAR en usr/bin/lib/bakeneko-daemon.jar → usamos resolvedExecutable.
+    final execDir = p.dirname(Platform.resolvedExecutable);
     final candidates = [
-      p.join(here, 'bakeneko-daemon.jar'),
-      p.join(here, 'lib', 'bakeneko-daemon.jar'),
-      p.join(here, '..', 'daemon', 'build', 'libs', 'bakeneko-daemon.jar'),
-      // Desarrollo: el binario corre desde app/build/.../bundle; subimos al repo.
-      p.join(here, '..', '..', '..', '..', 'daemon', 'build', 'libs', 'bakeneko-daemon.jar'),
+      p.join(execDir, 'bakeneko-daemon.jar'),
+      p.join(execDir, 'lib', 'bakeneko-daemon.jar'),
     ];
+
+    // Busca hacia arriba para entorno de desarrollo (flutter run / dart run)
+    var current = execDir;
+    for (var i = 0; i < 8; i++) {
+      candidates.add(p.join(current, 'daemon', 'build', 'libs', 'bakeneko-daemon.jar'));
+      current = p.dirname(current);
+    }
+
     for (final c in candidates) {
-      if (File(c).existsSync()) return File(c).resolveSymbolicLinksSync();
+      if (File(c).existsSync()) {
+        return File(c).resolveSymbolicLinksSync();
+      }
     }
     return candidates.first;
   }
@@ -182,7 +190,12 @@ class DaemonClient {
   }
 
   Future<String> _resolveJava() async {
-    // JAVA_HOME del entorno, o 'java' en PATH.
+    // 1. JRE empaquetado (AppImage / distribución)
+    final here = p.dirname(Platform.resolvedExecutable);
+    final bundledJre = p.join(here, 'jre', 'bin', 'java');
+    if (File(bundledJre).existsSync()) return bundledJre;
+
+    // 2. JAVA_HOME del entorno, o 'java' en PATH.
     final home = Platform.environment['JAVA_HOME'];
     if (home != null && home.isNotEmpty) {
       final f = File(p.join(home, 'bin', 'java'));

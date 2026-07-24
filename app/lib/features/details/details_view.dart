@@ -181,7 +181,7 @@ class _ChapterTile extends ConsumerWidget {
 
     return ListTile(
       dense: true,
-      title: Text(ch.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(ch.title.isNotEmpty ? ch.title : 'Capítulo ${ch.number.toStringAsFixed(ch.number.truncateToDouble() == ch.number ? 0 : 1)}', maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

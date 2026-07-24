@@ -7,6 +7,17 @@ class ReaderArg {
   final Manga manga;
   final int chapterIndex;
   final Settings settings;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ReaderArg &&
+          runtimeType == other.runtimeType &&
+          manga.key == other.manga.key &&
+          chapterIndex == other.chapterIndex;
+
+  @override
+  int get hashCode => manga.key.hashCode ^ chapterIndex.hashCode;
 }
 
 /// Estado del lector: capítulos, páginas, modo, filtros.
@@ -18,6 +29,7 @@ class ReaderState {
     this.loadingPages = false,
     this.readMode = ReadMode.webtoon,
     this.colorFilter = ColorFilterPreset.none,
+    this.showUI = true,
     this.error,
     this.mangaId,
   });
@@ -28,6 +40,7 @@ class ReaderState {
   final bool loadingPages;
   final ReadMode readMode;
   final ColorFilterPreset colorFilter;
+  final bool showUI;
   final String? error;
   final int? mangaId;
 
@@ -41,6 +54,7 @@ class ReaderState {
     bool? loadingPages,
     ReadMode? readMode,
     ColorFilterPreset? colorFilter,
+    bool? showUI,
     String? error,
     int? mangaId,
   }) => ReaderState(
@@ -50,6 +64,7 @@ class ReaderState {
     loadingPages: loadingPages ?? this.loadingPages,
     readMode: readMode ?? this.readMode,
     colorFilter: colorFilter ?? this.colorFilter,
+    showUI: showUI ?? this.showUI,
     error: error,
     mangaId: mangaId ?? this.mangaId,
   );

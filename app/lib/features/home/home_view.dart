@@ -29,7 +29,7 @@ class HomeScreen extends ConsumerWidget {
                   child: state.continueReading.isEmpty
                       ? null
                       : SizedBox(
-                          height: 230,
+                          height: 250,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: state.continueReading.length,
@@ -58,10 +58,13 @@ class HomeScreen extends ConsumerWidget {
                           runSpacing: 16,
                           children: [
                             for (final m in state.recentlyAdded.take(10))
-                              MangaCover(
-                                manga: m,
-                                width: 150,
-                                onTap: () => _open(context, m),
+                              SizedBox(
+                                height: 250,
+                                child: MangaCover(
+                                  manga: m,
+                                  width: 150,
+                                  onTap: () => _open(context, m),
+                                ),
                               ),
                           ],
                         ),

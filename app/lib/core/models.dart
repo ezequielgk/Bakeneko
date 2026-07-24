@@ -119,7 +119,7 @@ class Chapter {
         scanlator: j['scanlator'] as String?,
         uploadDate: j['uploadDate'] as int?,
         branch: j['branch'] as String?,
-        blob: j,
+        blob: j['blob'] as Map<String, dynamic>? ?? j,
       );
 
   Map<String, dynamic> toJson() => {
@@ -131,6 +131,7 @@ class Chapter {
         if (scanlator != null) 'scanlator': scanlator,
         if (uploadDate != null) 'uploadDate': uploadDate,
         if (branch != null) 'branch': branch,
+        if (blob != null) 'blob': blob,
       };
 }
 

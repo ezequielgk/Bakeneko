@@ -12,8 +12,11 @@ import 'core/db/dao/manga_dao.dart';
 import 'core/settings.dart';
 import 'core/xdg.dart';
 
-void main() {
+import 'package:window_manager/window_manager.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
   Xdg.ensureDirs();
 
   final db = AppDatabase.open('${Xdg.dataRoot.path}/bakeneko.db');

@@ -56,7 +56,7 @@ class AppearancePreview extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: maxExtent,
-                childAspectRatio: 0.62,
+                mainAxisExtent: 280,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),

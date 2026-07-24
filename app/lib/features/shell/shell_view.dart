@@ -13,6 +13,10 @@ import '../home/home_view.dart';
 import '../library/library_view.dart';
 import '../settings/settings_view.dart';
 import '../reader/reader_view.dart';
+import '../reader/reader_controller.dart';
+import '../reader/reader_state.dart';
+import '../../core/settings.dart';
+import '../../app.dart';
 
 /// Secciones del sidebar (mismas que el mockup Figma + 'Explorar' acordada).
 enum NavSection { home, library, browse, downloads, extensions, settings }
@@ -101,19 +105,28 @@ class _ReaderOverlay extends ConsumerWidget {
     final details = ref.watch(detailsProvider(mangaRef));
     final manga = details.manga;
     if (manga == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final readerState = ref.watch(readerProvider(ReaderArg(
+      manga: manga,
+      chapterIndex: chapterIndex,
+      settings: ref.watch(settingsProvider),
+    )));
+
     return Stack(
       children: [
         ReaderView(manga: manga, chapterIndex: chapterIndex),
-        Positioned(
-          top: 8,
-          left: 8,
-          child: SafeArea(
-            child: IconButton.filled(
-              onPressed: () => ref.read(readerChapterProvider.notifier).state = null,
-              icon: const Icon(Icons.close, size: 22),
+        if (readerState.showUI)
+          Positioned(
+            top: 8,
+            left: 8,
+            child: SafeArea(
+              child: IconButton.filled(
+                onPressed: () {
+                  ref.read(readerChapterProvider.notifier).state = null;
+                },
+                icon: const Icon(Icons.close, size: 22),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../app.dart';
 import '../../core/models.dart';
@@ -21,31 +23,36 @@ class ReaderView extends ConsumerWidget {
     final state = ref.watch(readerProvider(arg));
 
     if (state.error != null && state.pageUrls.isEmpty) {
-      return _ReaderError(message: state.error!, onRetry: () => ref.read(readerProvider(arg).notifier).retry(arg));
+      return Scaffold(body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text(state.error!), ElevatedButton(onPressed: () => ref.read(readerProvider(arg).notifier).retry(arg), child: const Text('Reintentar'))])));
     }
-    if (state.isLoading) {
+    if (state.loadingPages && state.pageUrls.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
     if (state.chapters.isEmpty) {
       return const Scaffold(body: Center(child: Text('No hay capítulos.')));
     }
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          state.readMode == ReadMode.webtoon
-              ? _WebtoonPages(state: state)
-              : _PagedPages(state: state),
-          _BottomBar(
-            state: state,
-            onPrev: () => ref.read(readerProvider(arg).notifier).prevChapter(arg),
-            onNext: () => ref.read(readerProvider(arg).notifier).nextChapter(arg),
-            onToggleMode: () => ref.read(readerProvider(arg).notifier).setReadMode(
-                state.readMode == ReadMode.webtoon ? ReadMode.paginated : ReadMode.webtoon),
-            onColorFilter: () => _showFilterMenu(context, ref, arg, state.colorFilter),
-          ),
-        ],
+      body: GestureDetector(
+        onTap: () => ref.read(readerProvider(arg).notifier).toggleUI(),
+        child: Stack(
+          children: [
+            state.readMode == ReadMode.webtoon
+                ? _WebtoonPages(state: state)
+                : _PagedPages(state: state, arg: arg),
+            if (state.showUI)
+              _BottomBar(
+                state: state,
+                onPrev: () => ref.read(readerProvider(arg).notifier).prevChapter(arg),
+                onNext: () => ref.read(readerProvider(arg).notifier).nextChapter(arg),
+                onToggleMode: () => ref.read(readerProvider(arg).notifier).setReadMode(
+                    state.readMode == ReadMode.webtoon ? ReadMode.paginated : ReadMode.webtoon),
+                onColorFilter: () => _showFilterMenu(context, ref, arg, state.colorFilter),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -98,37 +105,22 @@ class _WebtoonPages extends StatelessWidget {
   }
 }
 
-class _PagedPages extends StatefulWidget {
-  const _PagedPages({required this.state});
+class _PagedPages extends ConsumerWidget {
+  const _PagedPages({required this.state, required this.arg});
   final ReaderState state;
+  final ReaderArg arg;
 
   @override
-  State<_PagedPages> createState() => _PagedPagesState();
-}
-
-class _PagedPagesState extends State<_PagedPages> {
-  late PageController _ctrl;
-  int _page = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = PageController();
-  }
-
-  @override
-  void dispose() => _ctrl.dispose();
-
-  @override
-  Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: _ctrl,
-      itemCount: widget.state.pageUrls.length,
-      onPageChanged: (p) => setState(() => _page = p),
-      itemBuilder: (context, i) => _Page(
-        url: widget.state.pageUrls[i],
-        filter: widget.state.colorFilter,
-        fit: BoxFit.contain,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ListView.builder(
+      itemCount: state.pageUrls.length,
+      itemBuilder: (context, i) => SizedBox(
+        height: MediaQuery.sizeOf(context).height,
+        child: _Page(
+          url: state.pageUrls[i],
+          filter: state.colorFilter,
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }
@@ -176,6 +168,7 @@ class _Page extends StatelessWidget {
       img = CachedNetworkImage(
         imageUrl: url,
         fit: fit,
+        httpHeaders: const {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'},
         placeholder: (_, __) => const Center(child: CircularProgressIndicator(color: Colors.white54)),
         errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 40),
       );
@@ -201,43 +194,51 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      bottom: 16,
-      left: 16,
-      right: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              onPressed: state.currentChapter > 0 ? onPrev : null,
-              icon: const Icon(Icons.chevron_left),
-              tooltip: 'Capítulo anterior',
-            ),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    state.chapters[state.currentChapter].title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(onPressed: onToggleMode, child: Text(state.readMode == ReadMode.webtoon ? 'Webtoon' : 'Paginado')),
-                      TextButton(onPressed: onColorFilter, child: const Text('Filtros')),
-                    ],
-                  ),
-                ],
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withOpacity(0.92),
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: state.currentChapter > 0 ? onPrev : null,
+                icon: const Icon(Icons.chevron_left),
+                tooltip: 'Capítulo anterior',
               ),
-            ),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      state.chapters[state.currentChapter].title.isEmpty ? 'Capítulo ${state.currentChapter}' : state.chapters[state.currentChapter].title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      children: [
+                        TextButton(onPressed: onToggleMode, child: Text(state.readMode == ReadMode.webtoon ? 'Webtoon' : 'Paginado')),
+                        TextButton(onPressed: onColorFilter, child: const Text('Filtros')),
+                        TextButton(
+                          onPressed: () async {
+                            final isFull = await windowManager.isFullScreen();
+                            await windowManager.setFullScreen(!isFull);
+                          },
+                          child: const Text('Pantalla Completa'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             IconButton(
               onPressed: state.currentChapter < state.chapters.length - 1 ? onNext : null,
               icon: const Icon(Icons.chevron_right),
@@ -246,7 +247,7 @@ class _BottomBar extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

@@ -19,6 +19,8 @@ dependencies:
   # --- Rutas / paths POSIX ---
   path: ^1.9.1
   path_provider: ^2.1.5
+  http: ^1.6.0
+  window_manager: ^0.5.2
   # --- Utilidades de red (hablar con daemon por socket Unix) ---
   # dart:io ya cubre Unix domain sockets; no hace falta paquete extra.
 

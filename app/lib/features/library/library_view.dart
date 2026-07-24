@@ -347,7 +347,7 @@ class _Grid extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 160,
-        childAspectRatio: 0.62,
+        mainAxisExtent: 280,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
