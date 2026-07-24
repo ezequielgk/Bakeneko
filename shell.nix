@@ -46,8 +46,10 @@ pkgs.mkShell {
   shellHook = ''
     export JAVA_HOME=${pkgs.jdk21}
     export FLUTTER_ROOT=${pkgs.flutter}
-    # Evita el warning de licencia de Android (no usamos Android)
     export FLUTTER_SUPPRESS_ANALYTICS=true
+    # sqlite3 (FFI) necesita encontrar libsqlite3.so en el shell de desarrollo.
+    # En build empaquetado lo provee sqlite3_flutter_libs junto al binario.
+    export LD_LIBRARY_PATH="${pkgs.sqlite.out}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     echo ""
     echo "  bakeneko dev shell"
     echo "  flutter:  $(flutter --version 2>/dev/null | head -1 | sed 's/^[«"]//; s/[»"].*//')"
