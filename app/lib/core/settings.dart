@@ -14,6 +14,10 @@ class Settings {
     this.defaultReadMode = ReadMode.webtoon,
     this.readerColorFilter = ColorFilterPreset.none,
     this.enabledSources = const ['MANGADEX'],
+    this.showNsfwContent = false,
+    this.browseSelectedSources = const [],
+    this.browseSelectedLangs = const [],
+    this.browseNsfwOverride,
     this.compactSidebar = false,
     this.cornerRadius = AppCornerRadius.slight,
   });
@@ -24,6 +28,10 @@ class Settings {
   final ReadMode defaultReadMode;
   final ColorFilterPreset readerColorFilter;
   final List<String> enabledSources;
+  final bool showNsfwContent;
+  final List<String> browseSelectedSources;
+  final List<String> browseSelectedLangs;
+  final bool? browseNsfwOverride;
   final bool compactSidebar;
   final AppCornerRadius cornerRadius;
 
@@ -34,6 +42,10 @@ class Settings {
     ReadMode? defaultReadMode,
     ColorFilterPreset? readerColorFilter,
     List<String>? enabledSources,
+    bool? showNsfwContent,
+    List<String>? browseSelectedSources,
+    List<String>? browseSelectedLangs,
+    bool? browseNsfwOverride,
     bool? compactSidebar,
     AppCornerRadius? cornerRadius,
   }) => Settings(
@@ -43,6 +55,10 @@ class Settings {
     defaultReadMode: defaultReadMode ?? this.defaultReadMode,
     readerColorFilter: readerColorFilter ?? this.readerColorFilter,
     enabledSources: enabledSources ?? this.enabledSources,
+    showNsfwContent: showNsfwContent ?? this.showNsfwContent,
+    browseSelectedSources: browseSelectedSources ?? this.browseSelectedSources,
+    browseSelectedLangs: browseSelectedLangs ?? this.browseSelectedLangs,
+    browseNsfwOverride: browseNsfwOverride ?? this.browseNsfwOverride,
     compactSidebar: compactSidebar ?? this.compactSidebar,
     cornerRadius: cornerRadius ?? this.cornerRadius,
   );
@@ -54,6 +70,10 @@ class Settings {
     'defaultReadMode': defaultReadMode.name,
     'readerColorFilter': readerColorFilter.name,
     'enabledSources': enabledSources,
+    'showNsfwContent': showNsfwContent,
+    'browseSelectedSources': browseSelectedSources,
+    'browseSelectedLangs': browseSelectedLangs,
+    if (browseNsfwOverride != null) 'browseNsfwOverride': browseNsfwOverride,
     'compactSidebar': compactSidebar,
     'cornerRadius': cornerRadius.name,
   };
@@ -72,6 +92,10 @@ class Settings {
         ColorFilterPreset.none,
       ),
       enabledSources: (json['enabledSources'] as List?)?.cast<String>() ?? const ['MANGADEX'],
+      showNsfwContent: json['showNsfwContent'] as bool? ?? false,
+      browseSelectedSources: (json['browseSelectedSources'] as List?)?.cast<String>() ?? const [],
+      browseSelectedLangs: (json['browseSelectedLangs'] as List?)?.cast<String>() ?? const [],
+      browseNsfwOverride: json['browseNsfwOverride'] as bool?,
       compactSidebar: json['compactSidebar'] as bool? ?? false,
       cornerRadius: byName(AppCornerRadius.values, json['cornerRadius'] as String?, AppCornerRadius.slight),
     );

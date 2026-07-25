@@ -3,64 +3,60 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app.dart';
 import '../../core/models.dart';
+import '../../core/settings.dart';
 import '../../core/theme/icons.dart';
 import '../../core/widgets/manga_cover.dart';
 import '../shell/shell_view.dart';
 import 'browse_controller.dart';
 
 class BrowseScreen extends ConsumerStatefulWidget {
-  const BrowseScreen({super.key});
+  const BrowseScreen({super.key, this.lockedSourceId});
+  final String? lockedSourceId;
 
   @override
   ConsumerState<BrowseScreen> createState() => _BrowseScreenState();
 }
 
 class _BrowseScreenState extends ConsumerState<BrowseScreen> {
-  final _scrollCtrl = ScrollController();
-  String _prevSource = '';
-
   @override
   void initState() {
     super.initState();
-    _scrollCtrl.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(browseProvider.notifier).loadFirst();
+      final locked = widget.lockedSourceId ?? '';
+      ref.read(browseProvider(locked).notifier).loadFirst();
+    });
+  }
+
+  void _showFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => _FiltersBottomSheet(lockedSourceId: widget.lockedSourceId),
+    ).then((_) {
+      // Reload on close in case filters changed
+      final locked = widget.lockedSourceId ?? '';
+      ref.read(browseProvider(locked).notifier).loadFirst();
     });
   }
 
   @override
-  void dispose() {
-    _scrollCtrl.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollCtrl.position.pixels > _scrollCtrl.position.maxScrollExtent - 400) {
-      ref.read(browseProvider.notifier).loadMore();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final state = ref.watch(browseProvider);
-
-    // Recarga si la fuente cambió.
-    if (state.sourceId != _prevSource && _prevSource.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(browseProvider.notifier).loadFirst());
-    }
-    _prevSource = state.sourceId;
+    final locked = widget.lockedSourceId ?? '';
+    final state = ref.watch(browseProvider(locked));
+    final controller = ref.read(browseProvider(locked).notifier);
 
     return Scaffold(
       body: Column(
         children: [
           _Header(
-            sourceId: state.sourceId,
             query: state.query,
-            onSourceChanged: (s) => ref.read(browseProvider.notifier).setSource(s),
-            onQueryChanged: (q) => ref.read(browseProvider.notifier).setQuery(q),
-            onSearch: () => ref.read(browseProvider.notifier).loadFirst(),
+            locked: widget.lockedSourceId != null,
+            onQueryChanged: controller.setQuery,
+            onSearch: controller.loadFirst,
+            onFilter: _showFilters,
           ),
-          Expanded(child: _Body(state: state, scrollCtrl: _scrollCtrl)),
+          Expanded(child: _Body(state: state, lockedSourceId: widget.lockedSourceId)),
         ],
       ),
     );
@@ -69,17 +65,17 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
 
 class _Header extends StatelessWidget {
   const _Header({
-    required this.sourceId,
     required this.query,
-    required this.onSourceChanged,
+    required this.locked,
     required this.onQueryChanged,
     required this.onSearch,
+    required this.onFilter,
   });
-  final String sourceId;
   final String query;
-  final ValueChanged<String> onSourceChanged;
+  final bool locked;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearch;
+  final VoidCallback onFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -93,12 +89,8 @@ class _Header extends StatelessWidget {
         children: [
           Icon(I.explore, size: 22, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 12),
-          Text('Explorar', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          Text(locked ? 'Extensión' : 'Explorar', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(width: 24),
-          // Selector de fuente
-          _SourceDropdown(sourceId: sourceId, onChanged: onSourceChanged),
-          const SizedBox(width: 16),
-          // Barra de búsqueda
           Expanded(
             child: TextField(
               controller: TextEditingController(text: query)..selection = TextSelection.fromPosition(TextPosition(offset: query.length)),
@@ -113,6 +105,12 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: onFilter,
+            icon: const Icon(Icons.filter_list, size: 18),
+            label: const Text('Filtros'),
+          ),
+          const SizedBox(width: 12),
           FilledButton(onPressed: onSearch, child: const Text('Buscar')),
         ],
       ),
@@ -120,16 +118,74 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _SourceDropdown extends StatefulWidget {
-  const _SourceDropdown({required this.sourceId, required this.onChanged});
-  final String sourceId;
-  final ValueChanged<String> onChanged;
+class _Body extends ConsumerWidget {
+  const _Body({required this.state, required this.lockedSourceId});
+  final BrowseState state;
+  final String? lockedSourceId;
+
   @override
-  State<_SourceDropdown> createState() => _SourceDropdownState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (state.loading) return const Center(child: CircularProgressIndicator());
+    if (state.error != null && state.mangasBySource.isEmpty) {
+      return Center(child: Text('Error: ${state.error}', style: TextStyle(color: Theme.of(context).colorScheme.error)));
+    }
+    if (state.mangasBySource.isEmpty) {
+      return Center(child: Text('Sin resultados', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(24),
+      itemCount: state.mangasBySource.length,
+      itemBuilder: (context, i) {
+        final sourceName = state.mangasBySource.keys.elementAt(i);
+        final mangas = state.mangasBySource[sourceName]!;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(sourceName, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 160,
+                mainAxisExtent: 280,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: mangas.length,
+              itemBuilder: (context, j) {
+                final manga = mangas[j];
+                return MangaCover(
+                  manga: manga,
+                  width: 150,
+                  onTap: () {
+                    ref.read(navProvider.notifier).openManga(MangaRef(source: manga.source, url: manga.url, title: manga.title));
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+          ],
+        );
+      },
+    );
+  }
 }
 
-class _SourceDropdownState extends State<_SourceDropdown> {
-  List<Source> _sources = const [];
+class _FiltersBottomSheet extends ConsumerStatefulWidget {
+  const _FiltersBottomSheet({this.lockedSourceId});
+  final String? lockedSourceId;
+
+  @override
+  ConsumerState<_FiltersBottomSheet> createState() => _FiltersBottomSheetState();
+}
+
+class _FiltersBottomSheetState extends ConsumerState<_FiltersBottomSheet> {
+  List<Source> _allSources = [];
   bool _loading = true;
 
   @override
@@ -139,11 +195,15 @@ class _SourceDropdownState extends State<_SourceDropdown> {
   }
 
   void _loadSources() async {
-    final container = ProviderScope.containerOf(context, listen: false);
+    final daemon = ref.read(daemonClientProvider);
     try {
-      final daemon = container.read(daemonClientProvider);
       final list = await daemon.listSources();
-      if (mounted) setState(() { _sources = list.map(Source.fromJson).toList(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _allSources = list.map(Source.fromJson).toList();
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -151,85 +211,88 @@ class _SourceDropdownState extends State<_SourceDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
-    final current = _sources.where((s) => s.id == widget.sourceId).firstOrNull ?? _sources.firstOrNull;
-    return PopupMenuButton<String>(
-      initialValue: widget.sourceId,
-      onSelected: widget.onChanged,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: Theme.of(context).colorScheme.outline),
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
-        ),
-        child: Row(children: [
-          Text(current?.name ?? widget.sourceId, style: TextStyle(fontSize: 13)),
-          const SizedBox(width: 4),
-          const Icon(I.chevronDown, size: 16),
-        ]),
-      ),
-      itemBuilder: (_) => _sources.map((s) => PopupMenuItem(value: s.id, child: Text(s.name))).toList(),
-    );
-  }
-}
+    final settings = ref.watch(settingsProvider);
+    final isLocked = widget.lockedSourceId != null;
 
-class _Body extends StatelessWidget {
-  const _Body({required this.state, required this.scrollCtrl});
-  final BrowseState state;
-  final ScrollController scrollCtrl;
-
-  @override
-  Widget build(BuildContext context) {
-    if (state.loading) return const Center(child: CircularProgressIndicator());
-    if (state.error != null && state.mangas.isEmpty) {
-      return _ErrorView(message: state.error!, onRetry: () => ProviderScope.containerOf(context, listen: false).read(browseProvider.notifier).loadFirst());
-    }
-    if (state.mangas.isEmpty) {
-      return Center(child: Text('Sin resultados', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
+    if (_loading) {
+      return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
     }
 
-    return GridView.builder(
-      controller: scrollCtrl,
+    final enabledSources = _allSources.where((s) => settings.enabledSources.contains(s.id));
+    final langs = enabledSources.map((s) => s.lang).toSet().toList()..sort();
+
+    return Container(
       padding: const EdgeInsets.all(24),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 160,
-        mainAxisExtent: 280,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: state.mangas.length + (state.hasMore ? 1 : 0),
-      itemBuilder: (context, i) {
-        if (i >= state.mangas.length) {
-          return const Center(child: Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))));
-        }
-        final manga = state.mangas[i];
-        return MangaCover(manga: manga, onTap: () {
-          final ref = ProviderScope.containerOf(context, listen: false);
-          ref.read(navProvider.notifier).openManga(MangaRef(source: manga.source, url: manga.url, title: manga.title));
-        });
-      },
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.error_outline, size: 40, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: 12),
-          Text('Error al cargar', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(message, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 16),
-          OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Filtros', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          SwitchListTile(
+            title: const Text('Mostrar contenido NSFW'),
+            subtitle: const Text('Sobreescribe el ajuste global para esta búsqueda'),
+            value: settings.browseNsfwOverride ?? settings.showNsfwContent,
+            onChanged: (val) {
+              ref.read(settingsProvider.notifier).update((s) => s.copyWith(browseNsfwOverride: val));
+            },
+          ),
+          const Divider(),
+          
+          const Text('Idiomas', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: langs.map((l) {
+              final selected = settings.browseSelectedLangs.contains(l);
+              return FilterChip(
+                label: Text(l),
+                selected: selected,
+                onSelected: (val) {
+                  final list = List<String>.from(settings.browseSelectedLangs);
+                  val ? list.add(l) : list.remove(l);
+                  ref.read(settingsProvider.notifier).update((s) => s.copyWith(browseSelectedLangs: list));
+                },
+              );
+            }).toList(),
+          ),
+          
+          if (!isLocked) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const Text('Fuentes', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: settings.enabledSources.map((srcId) {
+                final source = _allSources.where((s) => s.id == srcId).firstOrNull;
+                final name = source?.name ?? srcId;
+                final selected = settings.browseSelectedSources.isEmpty || settings.browseSelectedSources.contains(srcId);
+                
+                return FilterChip(
+                  label: Text(name),
+                  selected: selected,
+                  onSelected: (val) {
+                    List<String> list = List<String>.from(settings.browseSelectedSources);
+                    // If empty, it means all were selected. So we need to explicitly populate the list with all others first, then remove.
+                    if (list.isEmpty) {
+                      list = List<String>.from(settings.enabledSources);
+                    }
+                    val ? list.add(srcId) : list.remove(srcId);
+                    if (list.length == settings.enabledSources.length) list.clear(); // Reset to empty if all selected
+                    ref.read(settingsProvider.notifier).update((s) => s.copyWith(browseSelectedSources: list));
+                  },
+                );
+              }).toList(),
+            ),
+          ],
         ],
       ),
     );

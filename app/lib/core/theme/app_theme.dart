@@ -94,8 +94,22 @@ ColorScheme colorSchemeFor(AppThemeMode mode, Accent accent, Brightness brightne
   );
 }
 
-ThemeData appTheme(AppThemeMode mode, Accent accent, Brightness brightness) {
+ThemeData appTheme(AppThemeMode mode, Accent accent, Brightness brightness, AppCornerRadius cornerRadius) {
   final cs = colorSchemeFor(mode, accent, brightness);
+  
+  double radiusValue;
+  switch (cornerRadius) {
+    case AppCornerRadius.sharp:
+      radiusValue = 0.0;
+      break;
+    case AppCornerRadius.slight:
+      radiusValue = 8.0;
+      break;
+    case AppCornerRadius.rounded:
+      radiusValue = 16.0;
+      break;
+  }
+  
   return ThemeData(
     useMaterial3: true,
     colorScheme: cs,
@@ -103,23 +117,23 @@ ThemeData appTheme(AppThemeMode mode, Accent accent, Brightness brightness) {
         ? AppTokens.darkBackground
         : AppTokens.lightBackground,
     fontFamily: 'Inter',
-    cardTheme: const CardThemeData(elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10)))),
+    cardTheme: CardThemeData(elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(radiusValue)))),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(radiusValue))),
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(radiusValue))),
         foregroundColor: cs.primary,
       ),
     ),
-    inputDecorationTheme: const InputDecorationTheme(
-      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    inputDecorationTheme: InputDecorationTheme(
+      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(radiusValue))),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     ),
   );
 }

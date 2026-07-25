@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
 import '../../core/models.dart';
 import '../../core/theme/icons.dart';
+import '../../core/widgets/empty_state.dart';
+import '../shell/shell_view.dart';
 import 'downloads_provider.dart';
 
 class DownloadsScreen extends ConsumerWidget {
@@ -27,15 +29,15 @@ class DownloadsScreen extends ConsumerWidget {
           const Divider(height: 1, thickness: 0.5),
           Expanded(
             child: list.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(I.downloads, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        const SizedBox(height: 16),
-                        Text('No hay descargas activas', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                      ],
-                    ),
+                ? EmptyStateAction(
+                    icon: I.downloads,
+                    message: 'No hay descargas activas',
+                    buttonText: 'Explorar',
+                    onPressed: () {
+                      ProviderScope.containerOf(context, listen: false)
+                          .read(navProvider.notifier)
+                          .go(NavSection.browse);
+                    },
                   )
                 : ListView.builder(
                     itemCount: list.length,

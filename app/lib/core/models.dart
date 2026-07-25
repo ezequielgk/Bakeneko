@@ -154,12 +154,25 @@ class Page {
 }
 
 class Source {
-  const Source({required this.id, required this.name});
+  const Source({required this.id, required this.name, required this.lang, this.isNsfw = false});
   final String id;
   final String name;
-  factory Source.fromJson(Map<String, dynamic> j) =>
-      Source(id: j['id'] as String, name: j['name'] as String);
-  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+  final String lang;
+  final bool isNsfw;
+  
+  factory Source.fromJson(Map<String, dynamic> j) {
+    final sid = j['id'] as String;
+    // TODO: replace with real metadata from daemon once available
+    final nsfw = ['multporn', 'nhentai', 'pururin', 'hitomi'].contains(sid.toLowerCase());
+    return Source(
+      id: sid,
+      name: j['name'] as String,
+      lang: j['lang'] as String? ?? 'N/A',
+      isNsfw: nsfw,
+    );
+  }
+  
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'lang': lang, 'isNsfw': isNsfw};
 }
 
 /// Estado de la cola de descargas, persistido en tabla `download`.

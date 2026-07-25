@@ -85,8 +85,8 @@ class BakenekoApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Bakeneko-Reader',
       debugShowCheckedModeBanner: false,
-      theme: appTheme(AppThemeMode.light, settings.accent, Brightness.light),
-      darkTheme: appTheme(AppThemeMode.dark, settings.accent, Brightness.dark),
+      theme: appTheme(AppThemeMode.light, settings.accent, Brightness.light, settings.cornerRadius),
+      darkTheme: appTheme(AppThemeMode.dark, settings.accent, Brightness.dark, settings.cornerRadius),
       themeMode: _materialThemeMode(settings.themeMode),
       home: ready.when(
         data: (_) => const ShellView(),

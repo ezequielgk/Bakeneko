@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models.dart';
 import '../../core/theme/icons.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/manga_cover.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
@@ -125,14 +126,15 @@ class _Section extends StatelessWidget {
         else
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(emptyIcon, size: 32, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(height: 8),
-                  Text(emptyText, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                ],
-              ),
+            child: EmptyStateAction(
+              icon: emptyIcon,
+              message: emptyText,
+              buttonText: 'Explorar',
+              onPressed: () {
+                ProviderScope.containerOf(context, listen: false)
+                    .read(navProvider.notifier)
+                    .go(NavSection.browse);
+              },
             ),
           ),
       ],

@@ -105,6 +105,29 @@ class _AppearanceSettings extends StatelessWidget {
             if (val != null) ref.read(settingsProvider.notifier).update((s) => s.copyWith(gridDensity: val));
           },
         ),
+        const SizedBox(height: 16),
+        Text('Radio de bordes', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<AppCornerRadius>(
+          initialValue: settings.cornerRadius,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+          items: AppCornerRadius.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name.toUpperCase()))).toList(),
+          onChanged: (val) {
+            if (val != null) ref.read(settingsProvider.notifier).update((s) => s.copyWith(cornerRadius: val));
+          },
+        ),
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Mostrar contenido NSFW', style: Theme.of(context).textTheme.titleMedium),
+          subtitle: const Text('Permite buscar y ver extensiones y mangas NSFW en toda la app'),
+          value: settings.showNsfwContent,
+          onChanged: (val) {
+            ref.read(settingsProvider.notifier).update((s) => s.copyWith(showNsfwContent: val));
+          },
+        ),
       ],
     );
   }

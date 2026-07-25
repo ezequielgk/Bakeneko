@@ -3,98 +3,101 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
 import '../../core/daemon/daemon_client.dart';
 import '../../core/models.dart';
+import '../../core/settings.dart';
 
-/// Estado de la pantalla Explorar.
 class BrowseState {
   const BrowseState({
-    this.sourceId = 'MANGADEX',
     this.query = '',
-    this.mangas = const [],
-    this.offset = 0,
+    this.mangasBySource = const {},
     this.loading = false,
-    this.loadingMore = false,
-    this.hasMore = true,
     this.error,
   });
 
-  final String sourceId;
   final String query;
-  final List<Manga> mangas;
-  final int offset;
+  final Map<String, List<Manga>> mangasBySource;
   final bool loading;
-  final bool loadingMore;
-  final bool hasMore;
   final String? error;
 
   BrowseState copyWith({
-    String? sourceId,
     String? query,
-    List<Manga>? mangas,
-    int? offset,
+    Map<String, List<Manga>>? mangasBySource,
     bool? loading,
-    bool? loadingMore,
-    bool? hasMore,
     String? error,
   }) => BrowseState(
-    sourceId: sourceId ?? this.sourceId,
     query: query ?? this.query,
-    mangas: mangas ?? this.mangas,
-    offset: offset ?? this.offset,
+    mangasBySource: mangasBySource ?? this.mangasBySource,
     loading: loading ?? this.loading,
-    loadingMore: loadingMore ?? this.loadingMore,
-    hasMore: hasMore ?? this.hasMore,
     error: error,
   );
 }
 
 class BrowseController extends StateNotifier<BrowseState> {
-  BrowseController(this._daemon) : super(const BrowseState());
+  BrowseController(this._daemon, this._settings, this.lockedSourceId) : super(const BrowseState());
 
   final DaemonClient _daemon;
-
-  void setSource(String sourceId) {
-    state = BrowseState(sourceId: sourceId);
-    loadFirst();
-  }
+  final Settings _settings;
+  final String lockedSourceId;
 
   void setQuery(String q) {
     state = state.copyWith(query: q);
   }
 
   Future<void> loadFirst() async {
-    state = state.copyWith(loading: true, error: null, mangas: const [], offset: 0, hasMore: true);
+    state = state.copyWith(loading: true, error: null, mangasBySource: const {});
     try {
-      final list = await _daemon.catalogList(source: state.sourceId, offset: 0, query: _effectiveQuery);
-      state = state.copyWith(
-        mangas: list.map(Manga.fromJson).toList(),
-        offset: list.length,
-        loading: false,
-        hasMore: list.isNotEmpty,
-      );
+      final effectiveNsfw = _settings.browseNsfwOverride ?? _settings.showNsfwContent;
+      
+      // Determine sources to query
+      List<String> targets = [];
+      if (lockedSourceId.isNotEmpty) {
+        targets = [lockedSourceId];
+      } else {
+        targets = _settings.browseSelectedSources.isNotEmpty 
+            ? _settings.browseSelectedSources 
+            : _settings.enabledSources;
+      }
+
+      // We should also filter out sources based on language or NSFW in a real scenario,
+      // but here we just fetch them all and then filter results, or rely on daemon.
+      // Wait, we need to know if the source itself is NSFW or matches the language.
+      final allSources = await _daemon.listSources().then((list) => list.map(Source.fromJson).toList());
+      
+      final activeSources = allSources.where((s) {
+        if (!targets.contains(s.id)) return false;
+        if (s.isNsfw && !effectiveNsfw) return false;
+        if (_settings.browseSelectedLangs.isNotEmpty && !_settings.browseSelectedLangs.contains(s.lang)) return false;
+        return true;
+      }).toList();
+
+      if (activeSources.isEmpty) {
+        state = state.copyWith(loading: false, mangasBySource: {});
+        return;
+      }
+
+      final Map<String, List<Manga>> newMangas = {};
+      await Future.wait(activeSources.map((source) async {
+        try {
+          final list = await _daemon.catalogList(source: source.id, offset: 0, query: _effectiveQuery);
+          final typedList = list.cast<Map<String, dynamic>>();
+          final filteredList = effectiveNsfw ? typedList : typedList.where((m) => !Manga.fromJson(m).isNsfw).toList();
+          if (filteredList.isNotEmpty) {
+            newMangas[source.name] = filteredList.map(Manga.fromJson).toList();
+          }
+        } catch (e) {
+          // Ignore individual source errors during multi-search
+          print("Error fetching ${source.id}: $e");
+        }
+      }));
+
+      state = state.copyWith(mangasBySource: newMangas, loading: false);
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString());
-    }
-  }
-
-  Future<void> loadMore() async {
-    if (state.loadingMore || !state.hasMore || state.loading) return;
-    state = state.copyWith(loadingMore: true);
-    try {
-      final list = await _daemon.catalogList(source: state.sourceId, offset: state.offset, query: _effectiveQuery);
-      state = state.copyWith(
-        mangas: [...state.mangas, ...list.map(Manga.fromJson)],
-        offset: state.offset + list.length,
-        loadingMore: false,
-        hasMore: list.isNotEmpty,
-      );
-    } catch (e) {
-      state = state.copyWith(loadingMore: false, hasMore: false, error: e.toString());
     }
   }
 
   String? get _effectiveQuery => state.query.isEmpty ? null : state.query;
 }
 
-final browseProvider = StateNotifierProvider<BrowseController, BrowseState>((ref) {
-  return BrowseController(ref.watch(daemonClientProvider));
+final browseProvider = StateNotifierProvider.autoDispose.family<BrowseController, BrowseState, String>((ref, lockedSourceId) {
+  return BrowseController(ref.watch(daemonClientProvider), ref.watch(settingsProvider), lockedSourceId);
 });

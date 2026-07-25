@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/icons.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/manga_cover.dart';
 import '../shell/shell_view.dart';
 import 'library_controller.dart';
@@ -327,20 +328,15 @@ class _Grid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (mangas.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(I.library, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text('Tu biblioteca está vacía', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              'Explora mangas y márcalos como favorito',
-              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
+      return EmptyStateAction(
+        icon: I.library,
+        message: 'Tu biblioteca está vacía\nExplora mangas y márcalos como favorito',
+        buttonText: 'Explorar',
+        onPressed: () {
+          ProviderScope.containerOf(context, listen: false)
+              .read(navProvider.notifier)
+              .go(NavSection.browse);
+        },
       );
     }
     return GridView.builder(

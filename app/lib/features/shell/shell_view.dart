@@ -31,12 +31,17 @@ final navProvider = StateNotifierProvider<NavigationController, NavState>((ref) 
 });
 
 class NavState {
-  const NavState({this.section = NavSection.library, this.details = const []});
+  const NavState({this.section = NavSection.library, this.details = const [], this.activeExtensionBrowse});
   final NavSection section;
   final List<MangaRef> details; // pila de mangas abiertos (push/pop)
+  final String? activeExtensionBrowse;
   bool get onDetails => details.isNotEmpty;
-  NavState copyWith({NavSection? section, List<MangaRef>? details}) =>
-      NavState(section: section ?? this.section, details: details ?? this.details);
+  NavState copyWith({NavSection? section, List<MangaRef>? details, String? activeExtensionBrowse, bool clearExtensionBrowse = false}) =>
+      NavState(
+        section: section ?? this.section, 
+        details: details ?? this.details,
+        activeExtensionBrowse: clearExtensionBrowse ? null : (activeExtensionBrowse ?? this.activeExtensionBrowse),
+      );
 }
 
 final detailsStackProvider = StateProvider<List<MangaRef>>((_) => const []);
@@ -46,9 +51,11 @@ final readerChapterProvider = StateProvider<int?>((_) => null);
 
 class NavigationController extends StateNotifier<NavState> {
   NavigationController() : super(const NavState());
-  void go(NavSection s) => state = state.copyWith(section: s, details: const []);
+  void go(NavSection s) => state = state.copyWith(section: s, details: const [], activeExtensionBrowse: null);
   void openManga(MangaRef m) => state = state.copyWith(details: [...state.details, m]);
   void closeManga() => state = state.copyWith(details: state.details.isEmpty ? const [] : state.details.sublist(0, state.details.length - 1));
+  void openExtensionBrowse(String sourceId) => state = state.copyWith(activeExtensionBrowse: sourceId);
+  void closeExtensionBrowse() => state = state.copyWith(clearExtensionBrowse: true);
 }
 
 class ShellView extends ConsumerWidget {
@@ -88,16 +95,18 @@ class ShellView extends ConsumerWidget {
           ),
           const VerticalDivider(width: 1, color: AppTokens.sidebarBorder),
           Expanded(
-            child: current == null
-                ? IndexedStack(index: nav.section.index, children: const [
-                    HomeScreen(),
-                    LibraryScreen(),
-                    BrowseScreen(),
-                    DownloadsScreen(),
-                    ExtensionsScreen(),
-                    SettingsScreen(),
-                  ])
-                : _DetailWithBack(mangaRef: current),
+            child: current != null
+                ? _DetailWithBack(mangaRef: current)
+                : nav.activeExtensionBrowse != null
+                    ? _SourceBrowseWithBack(sourceId: nav.activeExtensionBrowse!)
+                    : IndexedStack(index: nav.section.index, children: const [
+                        HomeScreen(),
+                        LibraryScreen(),
+                        BrowseScreen(),
+                        DownloadsScreen(),
+                        ExtensionsScreen(),
+                        SettingsScreen(),
+                      ]),
           ),
         ],
       ),
@@ -166,6 +175,35 @@ class _DetailWithBack extends ConsumerWidget {
           ]),
         ),
         Expanded(child: DetailsView(ref: mangaRef)),
+      ],
+    );
+  }
+}
+
+class _SourceBrowseWithBack extends ConsumerWidget {
+  const _SourceBrowseWithBack({required this.sourceId});
+  final String sourceId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline, width: 0.5)),
+          ),
+          child: Row(children: [
+            TextButton.icon(
+              onPressed: () => ref.read(navProvider.notifier).closeExtensionBrowse(),
+              icon: const Icon(I.chevronLeft, size: 18),
+              label: const Text('Volver a Extensiones'),
+            ),
+          ]),
+        ),
+        Expanded(child: BrowseScreen(lockedSourceId: sourceId)),
       ],
     );
   }
